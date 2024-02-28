@@ -15,7 +15,7 @@ jobs:
         with:
           server:  ftp.medlegalsafekeep.com
           username: dev@medlegalsafekeep.com
-          password: ${{ secrets.FTP_SECRET }}
+          password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./   # This is the directory containing your code
           server-dir: medlegalsafekeep.com/public_html/   # This is the target directory on the FTP server
           exclude: |
