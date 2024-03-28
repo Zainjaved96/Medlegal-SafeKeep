@@ -134,32 +134,34 @@
           <div class="row mx-auto " >
             <div class="col-xl-10 mx-auto">
               <div class="row gy-10 mx-auto gx-lg-8 gx-xl-12">
-                <div class="col-lg-8 mx-auto">
-                  <form class="contact-form needs-validation">
+                <div class="col-lg-8 mx-auto" >
+                  <form class="contact-form needs-validation" id="request-form">
                     <div class="messages"></div>
                     <div class="row gx-4">
                         <div class="col-md-12">
                             <div class="mb-4">
                                 <label for="">Name*</label>
-                              <input id="role" type="text" name="name" class="form-control" placeholder="Micah Richards" required>
+                              <input id="name" type="text" name="name" class="form-control" placeholder="Micah Richards" required>
                               <div class="valid-feedback"> Looks good! </div>
                               <div class="invalid-feedback"> Please enter your last name. </div>
                             </div>
                           </div>
                           <!-- /column -->
                       <div class="col-md-6">
-                        <div class="mb-4">
+                        <div class="mb-4" id="phone-section"  >
                           <label for="form_name" class=" ">Phone No*</label>
-                          <input id="phone1" required name="" type="tel" class="form-control" placeholder="+1 2016 6012 94" required>
+                          <input id="phone" required  type="tel" title="Number must have country code starting with +"   pattern="^\+.*"  class="form-control" placeholder="+1 2016 6012 94" required>
                           <div class="valid-feedback"> Looks good! </div>
-                          <div class="invalid-feedback"> Please enter your first name. </div>
+                          <div id="phone-error" class="invalid-feedback"> Please enter your first name. </div>
                         </div>
                       </div>
                       <!-- /column -->
                       <div class="col-md-6">
-                        <div class="mb-4">
+                        <div class="mb-4" id="client-phone-section">
                           <label for="form_name" class=" ">Clients Phone*</label>
-                          <input id="phone2" name="" type="tel" class="form-control" placeholder="+1 2016 6012 94" required>
+                          <input id="client-phone" name="" type="tel" 
+                          title="Number must have country code" pattern="^\+.*"  
+                           class="form-control" placeholder="+1 2016 6012 94" required>
                           <div class="valid-feedback"> Looks good! </div>
                           <div class="invalid-feedback"> Please enter your first name. </div>
                         </div>
@@ -178,7 +180,7 @@
                       <div class="col-md-12">
                         <div class="mb-4">
                             <label for="">Why do you want to access the data?</label>
-                            <textarea id="form_message"
+                            <textarea id="purpose"
                              name="reason" 
                             class="form-control" 
                             placeholder="I want to access my clients health history." 
@@ -198,9 +200,17 @@
                         </div>
                       </div>
                       <!-- /column -->
+                      <p id="response_success" class="text-success"></p>
+                      <p id="response_error" class="text-danger"></p>
                       <div class="col-12">
-                        <input type="submit" class="btn btn-primary rounded-pill btn-send mb-3" value="Request Access">
-                        <p class="text-muted"><strong>*</strong> These fields are required.</p>
+                        <button type="submit" class="btn btn-primary rounded-pill btn-send mb-3" >
+                          <span>Request Access </span>
+                          <div id="loader" class="spinner-border spinner-border-sm d-none m-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                        </button>
+                      
+                       
                       </div>
                       <!-- /column -->
                     </div>
@@ -222,17 +232,158 @@
 </body>
 <!-- Phone Number -->
 <script>
-var input1 = document.querySelector("#phone1");
+var input1 = document.querySelector("#phone");
       window.intlTelInput(input1, {
         // options here
         initialCountry: "us",
         utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
       });
-var input2 = document.querySelector("#phone2");
+var input2 = document.querySelector("#client-phone");
       window.intlTelInput(input2, {
         // options here
         initialCountry: "us",
         utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
       });
+</script>
+<script>
+
+    const write_error = (section, string) => {
+        element = section.querySelector(".invalid-feedback")
+        element.value = string
+        element.scrollIntoView();
+    }
+
+    const check_n_parse_phone = (section_id,)=> {
+        const section = document.getElementById(section_id)
+        let val = section.querySelector('.form-control').value
+        const country_code = "+" +  section.querySelector('.iti__selected-flag').getAttribute("title").split("+")[1]
+        if (val.includes("+")){
+          val = val.replace(country_code, '').replace(/[^\d]/g, '')
+          return {
+            "number":val,
+            "country_code":country_code
+          }
+        } else {
+          write_error(section, "Must start with country code: +1 123 456 78")
+          return null
+        }
+    }
+
+
+    const payload = {
+      "patient_phone_country_code" : "+92",
+      "patient_phone_no" : "3087844475",
+      "name" : "ali",
+      "phone" : "3087844475",
+      "purpose" : "none",
+      "type_of_access" : "new",
+      "latitude" : "1.12365",
+      "longitude" : "2.3654",
+      "location" : "nullable",
+      "permission_granted_by" : "nullable",
+      "permission_granted_role" : "nullable"
+    }
+
+    const handleForm = (e) => {
+    e.preventDefault();
+    const name = document.getElementById("name").value;
+    const purpose = document.getElementById("purpose").value;
+    const phone_data = check_n_parse_phone('phone-section');
+    const client_phone_data = check_n_parse_phone('client-phone-section');
+    const loader = document.querySelector("#loader")
+    const response_success = document.querySelector("#response_success")
+    const response_error = document.querySelector("#response_error")
+    // removin previous error responses
+   
+    loader.classList.toggle('d-none')
+
+    const handleResponse = (data) => {
+      response_error.textContent = ''
+      response_success.textContent = ''
+      if(data.status){
+        response_success.textContent = data.message
+      } else {
+        response_error.textContent = data.message
+      }
+    }
+
+    // Function to get the user's current location
+    const getLocation = () => {
+        return new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+                        resolve({ latitude, longitude });
+                    },
+                    (error) => {
+                       
+                        reject("Error: " + error.message);
+                    }
+                );
+            } else {
+                reject("Geolocation is not supported by this browser.");
+            }
+        });
+    };
+
+    // Call the function to get the user's current location
+    getLocation()
+        .then((coordinates) => {
+            const formData = {
+                "name": name,
+                "phone": phone_data.number,
+                "patient_phone_no": client_phone_data.number,
+                "patient_phone_country_code": client_phone_data.country_code,
+                "purpose": purpose,
+                "type_of_access": "new",
+                "latitude": coordinates.latitude,
+                "longitude": coordinates.longitude,
+                "location": "nullable",
+                "permission_granted_by": "nullable",
+                "permission_granted_role": "nullable"
+            };
+            // Sending the GET request
+            fetch('https://portal.medlegalsafekeep.com/api/get_patient_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+
+            })
+            .then(data => {
+                console.log('Response from server:', data);
+                loader.classList.toggle('d-none')
+                handleResponse(data)
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loader.classList.toggle('d-none')
+
+                // Handle errors here, such as displaying a message to the user
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            loader.classList.toggle('d-none')
+
+            // Handle error here, such as displaying a message to the user
+        });
+};
+
+
+
+  const requestForm = document.getElementById("request-form");
+  console.log(requestForm);
+  requestForm.addEventListener('submit', handleForm);
+
 </script>
 </html>
